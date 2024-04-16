@@ -26,7 +26,7 @@
 
 **完全函数依赖**： 设R(U)是属性集U上的关系模式，X、Y是U的子集。如果Y函数依赖于X，且对于X的任何一个真子集X’，都有Y不函数依赖于X’，则称Y对X完全函数依赖。记作：如果Y函数依赖于X，但Y不完全函数依赖于X，则称Y对X部分函数依赖。
 
-![Lapland](https://img-blog.csdnimg.cn/20190414144744240.png "Lapland")
+![Lapland](https://raw.githubusercontent.com/ww-1009/interview/main/img/database/functional_dependency.png "Lapland")
 
 <font color='red'>**判断一个关系是否属于第二范式**</font>：
 
