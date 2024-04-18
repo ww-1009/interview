@@ -450,3 +450,37 @@ public class Test {
 * `@FunctionalInterface` - 函数式接口注解，这是在Java 8版本中引入的，**用在接口上**，标记接口是一个函数式接口（即只有一个方法的接口，可以直接用一个lambda来作为接口的实例），例如进行线程开发中常用的 `Runnable` 就是一个典型的函数式接口。
 * `＠SafeVarargs` - 参数安全类型注解，用于方法和构造方法上，断言varargs参数（即可变长参数）会被安全地使用。比如涉及泛型的可变长参数会有『unchecked』警告，加了`@SafeVarargs` 时编译器不会再给出『unchecked』警告。
 
+### 注解分类
+> 注解是向编译器提供额外信息的一种元编程机制，那么依据机制的简单到复杂，可以把注解分为5个类型：
+
+* 标记注解（Marker Annotations）
+    > 最简单的注解，对于某个**声明进行标记**，编译器会对被标记的声明进行检查和处理。如`@Override`和`@Deprecated`。
+
+* 单值注解（Single Value Annotations）
+    > 需要给注解传递一个参数且只有一个参数，如`@SuppressWarnings("unchecked")`。
+
+* 全值注解（Full Annotations）
+    > 需要给注解传递很多参数（多个键值对），如：
+    ```java
+    @Test(owner="Paul", values="Class Greeks")
+    public void testSomeMethod() {
+    // ...
+    }
+    ```
+* 类型注解（Type Annotations）
+    > 可以用在**类型被声明**的地方，比如方法返回值，方法的参数声明等，如：
+    ```java
+    public @NonNull String transform(@Nullable String source) { ... }
+    ```
+
+* 重复注解（Repeating Annotations）
+    > 常规的注解在同一个地方只能出现一次，但重复注解可以在同一个地方出现多次，如：
+    ```java
+    @Words(word="Hello", value=1)
+    @Words(word="World", value=2)
+    public void method() {
+    // ...
+    }
+    ```
+### 自定义注解
+> 注解的使用是非常的直观和简洁的，无论是内置注解还是各种框架定义好了的注解，使用起来那是相当的香。但这远远不够，因为注解最大的威力在于元编程，比如代码操作和代码生成，这是减少重复劳动（重复代码）和提供开发效率的大杀器。所以我们必须学会高级玩法，即自定义注解。
