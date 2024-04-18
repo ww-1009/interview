@@ -64,7 +64,7 @@ Redis 后续版本又支持四种数据类型，它们的应用场景如下：
 
 后台线程相当于一个消费者，生产者把耗时任务丢到任务队列中，消费者（BIO）不停轮询这个队列，拿出任务就去执行对应的方法即可。
 
-![redis-cache-mysql](https://raw.githubusercontent.com/ww-1009/interview/main/img/redis/background_thread.webp)
+![background_thread](https://raw.githubusercontent.com/ww-1009/interview/main/img/redis/background_thread.webp)
 
 关闭文件、AOF 刷盘、释放内存这三个任务都有各自的任务队列：
 
