@@ -75,7 +75,21 @@
 
 **注意：** TCP 并不能保证数据一定会被对方接收到，因为这是不可能的。TCP 能够做到的是，如果有可能，就把数据递送到接收方，否则就（通过放弃重传并且中断连接这一手段）通知用户。因此准确说 TCP 也不是 100% 可靠的协议，它所能提供的是数据的可靠递送或故障的可靠通知。
 
-#### 1.2.三次握手与四次挥手
+#### 1.2. TCP头部
+
+![tcp-head](https://raw.githubusercontent.com/ww-1009/interview/main/img/network/tcp_head.webp)
+
+**序列号**：在建立连接时由计算机生成的随机数作为其初始值，通过 SYN 包传给接收端主机，每发送一次数据，就「累加」一次该「数据字节数」的大小。**用来解决网络包乱序问题**。
+
+**确认应答号**：指下一次「期望」收到的数据的序列号，发送端收到这个确认应答以后可以认为在这个序号以前的数据都已经被正常接收。**用来解决丢包的问题**。
+
+**控制位：**
+* *ACK*：该位为 `1` 时，「确认应答」的字段变为有效，TCP 规定除了最初建立连接时的 `SYN` 包之外该位必须设置为 1 。
+* *RST*：该位为 `1` 时，表示 TCP 连接中出现异常必须强制断开连接。
+* *SYN*：该位为 `1` 时，表示希望建立连接，并在其「序列号」的字段进行序列号初始值的设定。
+* *FIN*：该位为 `1` 时，表示今后不会再有数据发送，希望断开连接。当通信结束希望断开连接时，通信双方的主机之间就可以相互交换 `FIN` 位为 1 的 TCP 段。
+
+#### 1.3.三次握手与四次挥手
 
 所谓**三次握手(Three-way Handshake)**，是指建立一个 TCP 连接时，需要客户端和服务器总共发送3个包。
 
@@ -86,13 +100,19 @@
 
   > 发送完毕后，客户端进入 `SYN_SEND` 状态。
 
+![Handshake-First-Hand](https://raw.githubusercontent.com/ww-1009/interview/main/img/network/Handshake_First_Hand.webp)
+
 * 第二次握手(SYN=1, ACK=1, seq=y, ACKnum=x+1)
     > 服务器发回**确认包(ACK)** 应答。即 `SYN` 标志位和 `ACK` 标志位均为1。服务器端选择自己 ISN 序列号，放到 Seq 域里，同时将确认序号(Acknowledgement Number)设置为客户的 ISN 加1，即X+1。 发送完毕后，服务器端进入 `SYN_RCVD` 状态。
+
+![Handshake-Second-Hand](https://raw.githubusercontent.com/ww-1009/interview/main/img/network/Handshake_Second_Hand.webp)
 
 * 第三次握手(ACK=1，ACKnum=y+1)
     > 客户端再次发送**确认包(ACK)**，`SYN` 标志位为0，`ACK` 标志位为1，并且把服务器发来 `ACK` 的序号字段+1，放在确定字段中发送给对方，并且在数据段放写ISN的+1
 
     > 发送完毕后，客户端进入 `ESTABLISHED` 状态，当服务器端接收到这个包时，也进入 `ESTABLISHED` 状态，TCP 握手结束。
+
+![Handshake-Third-Hand](https://raw.githubusercontent.com/ww-1009/interview/main/img/network/Handshake_Third_Hand.webp)
 
 ![three-way-handshake](https://raw.githubusercontent.com/ww-1009/interview/main/img/network/tcp-connection-made-three-way-handshake.png)
 
@@ -132,6 +152,44 @@ UDP 是一个基于 IP 简单的**面向消息**的**传输层**协议。和 TCP
   
 * UDP 是**无连接的**。UDP 客户和服务器之前不必存在长期的关系。UDP 发送数据报之前也不需要经过握手创建连接的过程。
 * UDP 支持多播和广播。
+
+![udp-header](https://raw.githubusercontent.com/ww-1009/interview/main/img/network/udp_header.webp)
+
+* 目标和源端口：主要是告诉 UDP 协议应该把报文发给哪个进程。
+* 包长度：该字段保存了 UDP 首部的长度跟数据的长度之和。
+* 校验和：校验和是为了提供可靠的 UDP 首部和数据而设计，防止收到在网络传输中受损的 UDP 包。
+
+### 3. UDP 和 TCP 的区别
+
+1. **连接**
+
+    * TCP 是面向连接的传输层协议，传输数据前先要建立连接。
+    * UDP 是不需要连接，即刻传输数据。
+2. **服务对象**
+
+    * TCP 是一对一的两点服务，即一条连接只有两个端点。
+    * UDP 支持一对一、一对多、多对多的交互通信
+3. **可靠性**
+
+    * TCP 是可靠交付数据的，数据可以无差错、不丢失、不重复、按序到达。
+    * UDP 是尽最大努力交付，不保证可靠交付数据。但是我们可以基于 UDP 传输协议实现一个可靠的传输协议，比如 QUIC 协议，具体可以参见这篇文章：如何基于 UDP 协议实现可靠传输？
+
+4. **拥塞控制、流量控制**
+
+    * TCP 有拥塞控制和流量控制机制，保证数据传输的安全性。
+    * UDP 则没有，即使网络非常拥堵了，也不会影响 UDP 的发送速率。
+5. **首部开销**
+
+    * TCP 首部长度较长，会有一定的开销，首部在没有使用「选项」字段时是 20 个字节，如果使用了「选项」字段则会变长的。
+    * UDP 首部只有 8 个字节，并且是固定不变的，开销较小。
+6. **传输方式**
+
+    * TCP 是流式传输，没有边界，但保证顺序和可靠。
+    * UDP 是一个包一个包的发送，是有边界的，但可能会丢包和乱序。
+7. **分片不同**
+
+    * TCP 的数据大小如果大于 MSS 大小，则会在传输层进行分片，目标主机收到后，也同样在传输层组装 TCP 数据包，如果中途丢失了一个分片，只需要传输丢失的这个分片。
+    * UDP 的数据大小如果大于 MTU 大小，则会在 IP 层进行分片，目标主机收到后，在 IP 层组装完数据，接着再传给传输层。
 
 ## 五、应用层
 ### 1. HTTP
