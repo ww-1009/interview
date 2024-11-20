@@ -189,9 +189,19 @@ hadoop fs 具体命令 OR hdfs dfs 具体命令两个是完全相同的。
 
 ![Lapland](https://raw.githubusercontent.com/ww-1009/interview/main/img/database/hadoop/HDFS_read.png "Lapland")
 
-1.客户端通过 DistributedFileSystem 向 NameNode 请求下载文件，NameNode 通过查询元数据，找到文件块所在的 DataNode 地址。
+1. 客户端通过 DistributedFileSystem 向 NameNode 请求下载文件，NameNode 通过查询元数据，找到文件块所在的 DataNode 地址。
 2. 挑选一台 DataNode（就近原则，然后随机）服务器，请求读取数据。
 3. DataNode 开始传输数据给客户端（从磁盘里面读取数据输入流，以 Packet 为单位来做校验）。
 4. 客户端以 Packet 为单位接收，先在本地缓存，然后写入目标文件。
 
 ### 2.5 NameNode 和 SecondaryNameNode
+#### 2.5.1 NN 和 2NN 工作机制
+思考：NameNode 中的元数据是存储在哪里的？
+
+首先，我们做个假设，如果存储在 NameNode 节点的磁盘中，因为经常需要进行随机访问，还有响应客户请求，必然是效率过低。因此，元数据需要存放在内存中。但如果只存在内存中，一旦断电，元数据丢失，整个集群就无法工作了。<font color='red'>因此产生在磁盘中备份元数据的FsImage。</font>
+
+这样又会带来新的问题，当在内存中的元数据更新时，如果同时更新 FsImage，就会导致效率过低，但如果不更新，就会发生一致性问题，一旦 NameNode 节点断电，就会产生数据丢失。<font color='red'>因此，引入 Edits 文件（只进行追加操作，效率很高）。每当元数据有更新或者添加元数据时，修改内存中的元数据并追加到 Edits中。</font>这样，一旦 NameNode 节点断电，可以通过 FsImage 和 Edits 的合并，合成元数据。
+
+但是，如果长时间添加数据到 Edits 中，会导致该文件数据过大，效率降低，而且一旦断电，恢复元数据需要的时间过长。因此，需要定期进行 FsImage 和 Edits 的合并，如果这个操作由NameNode节点完成，又会效率过低。<font color='red'>因此，引入一个新的节点SecondaryNamenode，专门用于 FsImage 和 Edits 的合并。</font>
+
+![Lapland](https://raw.githubusercontent.com/ww-1009/interview/main/img/database/hadoop/NN_work.png "Lapland")
