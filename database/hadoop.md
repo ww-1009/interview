@@ -184,3 +184,14 @@ hadoop fs 具体命令 OR hdfs dfs 具体命令两个是完全相同的。
 6. dn1、dn2、dn3 逐级应答客户端。
 7. 客户端开始往 dn1 上传第一个 Block（先从磁盘读取数据放到一个本地内存缓存），以 Packet 为单位，dn1 收到一个 Packet 就会传给 dn2，dn2 传给 dn3；dn1 <font color='red'>每传一个 packet会放入一个应答队列等待应答</font>。
 8. 当一个 Block 传输完成之后，客户端再次请求 NameNode 上传第二个 Block 的服务器。（重复执行 3-7 步）。
+
+#### 2.4.2 HDFS 读数据流程
+
+![Lapland](https://raw.githubusercontent.com/ww-1009/interview/main/img/database/hadoop/HDFS_read.png "Lapland")
+
+1.客户端通过 DistributedFileSystem 向 NameNode 请求下载文件，NameNode 通过查询元数据，找到文件块所在的 DataNode 地址。
+2. 挑选一台 DataNode（就近原则，然后随机）服务器，请求读取数据。
+3. DataNode 开始传输数据给客户端（从磁盘里面读取数据输入流，以 Packet 为单位来做校验）。
+4. 客户端以 Packet 为单位接收，先在本地缓存，然后写入目标文件。
+
+### 2.5 NameNode 和 SecondaryNameNode
