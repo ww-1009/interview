@@ -27,8 +27,8 @@ MapReduce 将计算过程分为两个阶段：**Map** 和 **Reduce**
 
 ![Lapland](https://raw.githubusercontent.com/ww-1009/interview/main/img/database/hadoop/deployment_planning.png "Lapland")
 
-
-## 2. HDFS组成架构
+## 2. HDFS
+### 2.1 HDFS组成架构
 ![Lapland](https://raw.githubusercontent.com/ww-1009/interview/main/img/database/hadoop/HDFS_maked.png "Lapland")
 
 **Client**：就是客户端。
@@ -48,3 +48,37 @@ MapReduce 将计算过程分为两个阶段：**Map** 和 **Reduce**
 （1）辅助NameNode，分担其工作量，比如定期合并Fsimage和Edits，并推送给NameNode ；
 
 （2）在紧急情况下，可辅助恢复NameNode。
+
+### 2.2 HDFS文件块大小
+HDFS中的文件在物理上是分块存储（Block），块的大小可以通过配置参数 (dfs.blocksize）来规定，<font color='red'>默认大小在Hadoop2.x/3.x版本中是128M，1.x版本中是64M</font>。
+
+![Lapland](https://raw.githubusercontent.com/ww-1009/interview/main/img/database/hadoop/dfs_blocksize.png "Lapland")
+
+**思考：为什么块的大小不能设置太小，也不能设置太大？**
+
+（1）HDFS的块设置**太小**，<font color='red'>会增加寻址时间</font>，程序一直在找块的开始位置；
+
+（2）如果块设置的**太大**，从<font color='red'>磁盘传输数据的时间</font>会明显<font color='red'>大于定位这个块开始位置所需的时间</font>。导致程序在处理这块数据时，会非常慢。
+
+<font color='red'>**总结：HDFS块的大小设置主要取决于磁盘传输速率。**</font>
+
+### 2.3 HDFS的Shell操作
+hadoop fs 具体命令 OR hdfs dfs 具体命令两个是完全相同的。
+
+#### 2.3.1 上传
+1. -moveFromLocal：从本地**剪切**粘贴到 HDFS
+    ```
+    [atguigu@hadoop102 hadoop-3.1.3]$ vim shuguo.txt
+    输入：
+    shuguo
+
+    [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -moveFromLocal ./shuguo.txt /sanguo
+    ```
+2. -copyFromLocal：从本地文件系统中拷贝文件到 HDFS 路径去
+    ```
+    [atguigu@hadoop102 hadoop-3.1.3]$ vim weiguo.txt
+    输入：
+    weiguo
+    
+    [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -copyFromLocal weiguo.txt /sanguo
+    ```
