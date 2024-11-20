@@ -79,6 +79,108 @@ hadoop fs 具体命令 OR hdfs dfs 具体命令两个是完全相同的。
     [atguigu@hadoop102 hadoop-3.1.3]$ vim weiguo.txt
     输入：
     weiguo
-    
+
     [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -copyFromLocal weiguo.txt /sanguo
     ```
+3. -put：等同于 copyFromLocal，生产环境更习惯用 put
+    ```
+    [atguigu@hadoop102 hadoop-3.1.3]$ vim wuguo.txt
+    输入：
+    wuguo
+
+    [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -put ./wuguo.txt /sanguo
+    ```
+4. -appendToFile：追加一个文件到已经存在的文件末尾
+    ```
+    [atguigu@hadoop102 hadoop-3.1.3]$ vim liubei.txt
+    输入：
+    liubei
+
+    [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -appendToFile liubei.txt /sanguo/shuguo.txt
+    ```
+
+#### 2.3.2 下载
+1. -copyToLocal：从 HDFS 拷贝到本地
+    ```
+    [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -copyToLocal 
+    /sanguo/shuguo.txt ./
+    ```
+
+2. -get：等同于 copyToLocal，生产环境更习惯用 get
+    ```
+    [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -get 
+    /sanguo/shuguo.txt ./shuguo2.txt
+    ```
+
+#### 2.3.3 直接操作
+1. -ls: 显示目录信息
+    ```
+    [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -ls /sanguo
+    ```
+
+2. -cat：显示文件内容
+    ```
+    [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -cat /sanguo/shuguo.txt
+    ```
+3. -chgrp、-chmod、-chown：Linux 文件系统中的用法一样，修改文件所属权限
+    ```
+    [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -chmod 666 
+    /sanguo/shuguo.txt
+    [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -chown atguigu:atguigu 
+    /sanguo/shuguo.txt
+    ```
+4. -mkdir：创建路径
+    ```
+    [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -mkdir /jinguo
+    ```
+5. -cp：从 HDFS 的一个路径拷贝到 HDFS 的另一个路径
+    ```
+    [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -cp /sanguo/shuguo.txt /jinguo
+    ```
+
+6. -mv：在 HDFS 目录中移动文件
+    ```
+    [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -mv /sanguo/wuguo.txt /jinguo
+    [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -mv /sanguo/weiguo.txt /jinguo
+    ```
+7. -tail：显示一个文件的末尾 1kb 的数据
+    ```
+    [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -tail /jinguo/shuguo.txt
+    ```
+8. -rm：删除文件或文件夹
+    ```
+    [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -rm /sanguo/shuguo.txt
+    ```
+9. -rm -r：递归删除目录及目录里面内容
+    ```
+    [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -rm -r /sanguo
+    ```
+10. -du 统计文件夹的大小信息
+    ```
+    [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -du -s -h /jinguo
+    27 81 /jinguo
+
+    [atguigu@hadoop102 hadoop-3.1.3]$ hadoop fs -du -h /jinguo
+    14 42 /jinguo/shuguo.txt
+    7 21 /jinguo/weiguo.txt
+    6 18 /jinguo/wuguo.tx
+    ```
+    说明：27 表示文件大小；81 表示 27*3 个副本；/jinguo 表示查看的目录
+
+11. -setrep：设置 HDFS 中文件的副本数量
+    
+    这里设置的副本数只是记录在 NameNode 的元数据中，是否真的会有这么多副本，还得看 DataNode 的数量。因为目前只有 3 台设备，最多也就 3 个副本，只有节点数的增加到 10台时，副本数才能达到 10。
+
+### 2.4 HDFS 的读写流程
+#### 2.4.1 HDFS 写数据流程
+
+![Lapland](https://raw.githubusercontent.com/ww-1009/interview/main/img/database/hadoop/HDFS_write.png "Lapland")
+
+1. 客户端通过 Distributed FileSystem 模块向 NameNode 请求上传文件，NameNode 检查目标文件是否已存在，父目录是否存在。
+2. NameNode 返回是否可以上传。
+3. 客户端请求第一个 Block 上传到哪几个 DataNode 服务器上。
+4. NameNode 返回 3 个 DataNode 节点，分别为 dn1、dn2、dn3。
+5. 客户端通过 FSDataOutputStream 模块请求 dn1 上传数据，dn1 收到请求会继续调用dn2，然后 dn2 调用 dn3，将这个通信管道建立完成。
+6. dn1、dn2、dn3 逐级应答客户端。
+7. 客户端开始往 dn1 上传第一个 Block（先从磁盘读取数据放到一个本地内存缓存），以 Packet 为单位，dn1 收到一个 Packet 就会传给 dn2，dn2 传给 dn3；dn1 <font color='red'>每传一个 packet会放入一个应答队列等待应答</font>。
+8. 当一个 Block 传输完成之后，客户端再次请求 NameNode 上传第二个 Block 的服务器。（重复执行 3-7 步）。
