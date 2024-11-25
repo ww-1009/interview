@@ -82,3 +82,48 @@
 6. 作业完成
    
     除了向应用管理器请求作业进度外, 客户端每 5 秒都会通过调用 waitForCompletion()来检查作业是否完成。时间间隔可以通过 mapreduce.client.completion.pollinterval 来设置。作业完成之后, 应用管理器和 Container 会清理工作状态。作业的信息会被作业历史服务器存储以备之后用户核查。
+
+## 1.4 Yarn 调度器和调度算法
+Apache Hadoop3.1.3 默认的资源调度器是 Capacity Scheduler。CDH 框架默认调度器是 Fair Scheduler。
+
+### 1.4.1 先进先出调度器（FIFO）
+FIFO 调度器（First In First Out）：单队列，根据提交作业的先后顺序，先来先服务。
+
+![Lapland](https://raw.githubusercontent.com/ww-1009/interview/main/img/database/hadoop/yarn_FIFO.png "Lapland")
+
+**优点**：简单易懂；
+
+**缺点**：不支持多队列，生产环境很少使用；
+
+### 1.4.2 容量调度器（Capacity Scheduler）
+
+**容量调度器特点**
+
+![Lapland](https://raw.githubusercontent.com/ww-1009/interview/main/img/database/hadoop/yarn_CapacityScheduler.png "Lapland")
+
+1. 多队列：每个队列可配置一定的资源量，每个队列采用FIFO调度策略。
+2. 容量保证：管理员可为每个队列设置资源最低保证和资源使用上限
+3. 灵活性：如果一个队列中的资源有剩余，可以暂时共享给那些需要资源的队列，而一旦该队列有新的应用程序提交，则其他队列借调的资源会归还给该队列。
+4. 多租户：
+   
+   支持多用户共享集群和多应用程序同时运行。
+
+    为了防止同一个用户的作业独占队列中的资源，该调度器会对<font color='red'>同一用户提交的作业所占资源量进行限定。</font>
+
+**容量调度器资源分配算法**
+
+![Lapland](https://raw.githubusercontent.com/ww-1009/interview/main/img/database/hadoop/yarn_CSTree.png "Lapland")
+
+1. **队列资源分配**:
+    从root开始，使用深度优先算法，<font color='red'>优先选择资源占用率最低</font>的队列分配资源。
+2. **作业资源分配**:
+    默认按照提交作业的<font color='red'>优先级</font>和<font color='red'>提交时间</font>顺序分配资源。
+3. **容器资源分配**:
+   
+    按照容器的<font color='red'>优先级</font>分配资源；
+
+    如果优先级相同，按照<font color='red'>数据本地性原则</font>：
+    * 任务和数据在同一节点
+    * 任务和数据在同一机架
+    * 任务和数据不在同一节点也不在同一机架
+
